@@ -24,38 +24,75 @@ class WearScreen extends StatefulWidget {
 }
 
 class _WearScreenState extends State<WearScreen> {
-  final _wearConnectivity = FlutterWearOsConnectivity();
-  final _random = Random();
-  List<WearOsDevice> _connectedDevices = [];
+  final wearConnectivity = FlutterWearOsConnectivity();
+  final random = Random();
+  List<WearOsDevice> connectedDevices = [];
 
   @override
   void initState() {
     super.initState();
-    _initialize();
+    init();
   }
 
-  Future<void> _initialize() async {
-    await _wearConnectivity.configureWearableAPI();
-    _getDevices();
+  Future<void> init() async {
+    await wearConnectivity.configureWearableAPI();
+    await dataChangeListener();
   }
 
-  Future<void> _getDevices() async {
-    _connectedDevices = await _wearConnectivity.getConnectedDevices();
+  getSyncData() async {
+    await getDevices();
+
+    DataItem? dataItem = await wearConnectivity.findDataItemOnURIPath(
+      pathURI: Uri(
+          scheme: 'wear', host: connectedDevices.first.id, path: "/data-path"),
+    );
+
+    if (dataItem == null) return;
+    showToast('--- sync data: ${dataItem.mapData}');
   }
 
-  Future<void> _sendNumber() async {
-    await _getDevices();
-    if (_connectedDevices.isEmpty) return;
+  getDevices() async {
+    connectedDevices = await wearConnectivity.getConnectedDevices();
+    if (connectedDevices.isEmpty) showToast('Ningun dispisitivo conectado');
+    setState(() {});
+  }
 
-    final number = _random.nextInt(1000);
+  sendNumber() async {
+    await getDevices();
+
+    final number = random.nextInt(1000);
     final bytes = Uint8List.fromList(number.toString().codeUnits);
 
-    await _wearConnectivity.sendMessage(
+    await wearConnectivity.sendMessage(
       bytes,
-      deviceId: _connectedDevices.first.id,
+      deviceId: connectedDevices.first.id,
       path: '/randomNumber',
       priority: MessagePriority.high,
     );
+  }
+
+  dataChangeListener() async {
+    await getDevices();
+
+    wearConnectivity
+        .dataChanged(
+      pathURI: Uri(
+          scheme: "wear", host: connectedDevices.first.id, path: "/data-path"),
+    )
+        .listen(
+      (dataEvents) {
+        for (var event in dataEvents) {
+          showToast(event.dataItem.mapData.toString());
+        }
+      },
+    );
+  }
+
+  showToast(String label) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(label),
+      duration: const Duration(milliseconds: 300),
+    ));
   }
 
   @override
@@ -66,11 +103,16 @@ class _WearScreenState extends State<WearScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             ElevatedButton(
-              onPressed: _sendNumber,
+              onPressed: sendNumber,
               child: const Text('Generar y Enviar'),
             ),
             const SizedBox(height: 10),
-            Text('Dispositivos conectados: ${_connectedDevices.length}'),
+            ElevatedButton(
+              onPressed: () {
+                getSyncData();
+              },
+              child: const Text('Sincronizar'),
+            ),
           ],
         ),
       ),
