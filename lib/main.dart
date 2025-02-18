@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_wear_os_connectivity/flutter_wear_os_connectivity.dart';
+import 'package:wear_plus/wear_plus.dart';
 
 void main() => runApp(const MyWearApp());
 
@@ -98,23 +99,34 @@ class _WearScreenState extends State<WearScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-              onPressed: sendNumber,
-              child: const Text('Generar y Enviar'),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                getSyncData();
-              },
-              child: const Text('Sincronizar'),
-            ),
-          ],
-        ),
+      body: WatchShape(
+        builder: (BuildContext context, WearShape shape, Widget? child) {
+          
+          return AmbientMode(
+            builder: (context, mode, child) {
+              print('--- mode: $mode');
+              print('--- shape: $shape');
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      onPressed: sendNumber,
+                      child: const Text('Generar y Enviar'),
+                    ),
+                    const SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: () {
+                        getSyncData();
+                      },
+                      child: const Text('Sincronizar'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
